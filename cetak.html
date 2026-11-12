@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cetak Instrumen Penilaian PKKM - Format Resmi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <style>
+        @page { size: landscape; margin: 10mm; }
+        body { background: white; color: black; font-family: 'Times New Roman', Times, serif; padding: 10px; font-size: 11px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        th, td { border: 1px solid black; padding: 5px 6px; text-align: left; vertical-align: middle; }
+        th { background-color: #f2f2f2; text-align: center; font-weight: bold; font-size: 10px; }
+        .component-row { background-color: #15803d !important; color: white !important; font-weight: bold; font-size: 11px; }
+        .subtotal-row { background-color: #fef08a !important; font-weight: bold; font-size: 10px; }
+        .check-mark { font-size: 16px; font-weight: bold; color: black; text-align: center; display: block; }
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; }
+            .component-row { background-color: #15803d !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .subtotal-row { background-color: #fef08a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body class="space-y-4">
+
+    <!-- Tombol Aksi Cetak -->
+    <div class="flex justify-between items-center bg-slate-100 p-3 rounded-xl border border-slate-300 no-print">
+        <span class="text-xs font-bold text-slate-700">Pratinjau Format Resmi PKKM (Landscape & Sinkron Real-Time)</span>
+        <div class="flex gap-2">
+            <button onclick="window.print()" class="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-emerald-700">
+                Cetak / Simpan PDF
+            </button>
+            <button onclick="window.close()" class="px-4 py-2 bg-slate-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-slate-700">
+                Tutup Halaman
+            </button>
+        </div>
+    </div>
+
+    <!-- Kop Resmi Dokumen Cetak -->
+    <div class="text-center space-y-1 pb-2 border-b-2 border-black">
+        <h3 class="text-xs font-bold uppercase tracking-wider">INSTRUMEN PENILAIAN KINERJA KEPALA MADRASAH (PKKM)</h3>
+        <h2 class="text-sm font-bold uppercase">KEMENTERIAN AGAMA REPUBLIK INDONESIA</h2>
+        <div class="flex justify-between text-xs mt-2 pt-1 border-t border-dashed border-black px-2">
+            <span><strong>Nama Madrasah :</strong> <span id="cetakNamaSekolah">-</span></span>
+            <span><strong>Nama Kepala Madrasah :</strong> <span id="cetakNamaKamad">-</span></span>
+            <span><strong>Tahun Penilaian :</strong> <span id="cetakTahun">-</span></span>
+        </div>
+    </div>
+
+    <!-- Tabel Matriks -->
+    <div>
+        <table>
+            <thead>
+                <tr>
+                    <th class="w-10 text-center" rowspan="2">NO</th>
+                    <th class="w-1/4" rowspan="2">TUGAS UTAMA / UNSUR TUGAS UTAMA</th>
+                    <th class="w-10 text-center" rowspan="2">NO</th>
+                    <th class="w-1/4" rowspan="2">INDIKATOR KERJA</th>
+                    <th class="w-1/6" rowspan="2">DATA KINERJA YANG DIHARAPKAN</th>
+                    <th colspan="4" class="text-center">HASIL KINERJA</th>
+                    <th class="w-1/4" rowspan="2">BUKTI OTENTIK KUALITAS KINERJA*</th>
+                </tr>
+                <tr>
+                    <th class="w-8 text-center">1</th>
+                    <th class="w-8 text-center">2</th>
+                    <th class="w-8 text-center">3</th>
+                    <th class="w-8 text-center">4</th>
+                </tr>
+            </thead>
+            <tbody id="cetakTabelBody">
+                <tr>
+                    <td colspan="10" class="text-center italic py-4">Menyinkronkan data real-time dari Firebase...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Rekapitulasi Nilai Akhir -->
+    <div class="border border-black p-3 space-y-1 mt-3 break-inside-avoid">
+        <h4 class="text-xs font-bold uppercase border-b border-black pb-1">Rekapitulasi Hasil Penilaian Kinerja Kepala Madrasah</h4>
+        <div class="grid grid-cols-4 gap-2 text-center text-xs pt-1">
+            <div><strong>Total Dinilai:</strong> <span id="cetakTotalDinilai">0</span></div>
+            <div><strong>Jumlah Skor:</strong> <span id="cetakJumlahSkor">0</span></div>
+            <div><strong>Nilai Rata-Rata:</strong> <span id="cetakRataRata">0.00</span></div>
+            <div><strong>Predikat Kinerja:</strong> <span id="cetakPredikat">-</span></div>
+        </div>
+    </div>
+
+    <!-- Tanda Tangan -->
+    <div class="grid grid-cols-2 gap-12 pt-6 text-center text-xs break-inside-avoid px-8">
+        <div class="space-y-14">
+            <p>Mengetahui,<br><strong>Kepala Madrasah</strong></p>
+            <div>
+                <p id="cetakSignKamad" class="font-bold underline">----------------------------------------</p>
+                <p class="mt-0.5">NIP. ...............................................</p>
+            </div>
+        </div>
+        <div class="space-y-14">
+            <p>Pengawas / Asesor Penilai,</p>
+            <div>
+                <p class="font-bold underline">________________________________________</p>
+                <p class="mt-0.5">NIP. ...............................................</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skrip Firebase -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAREhPCc4WaFVecQN2_Lu4eoK0oXohZ7Fg",
+            authDomain: "ulangansains2025.firebaseapp.com",
+            databaseURL: "https://ulangansains2025-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "ulangansains2025",
+            storageBucket: "ulangansains2025.firebasestorage.app",
+            messagingSenderId: "514614164498",
+            appId: "1:514614164498:web:324090f888d301e831accb",
+            measurementId: "G-Y7027DY382"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const sekolahId = localStorage.getItem('pkkm_asesor_sekolah_id');
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (!sekolahId) {
+                alert("ID Sekolah tidak ditemukan. Silakan buka dari Panel Asesor terlebih dahulu.");
+                window.close();
+                return;
+            }
+
+            try {
+                const sekolahDoc = await db.collection("sekolah").doc(sekolahId).get();
+                if (sekolahDoc.exists) {
+                    const sData = sekolahDoc.data();
+                    document.getElementById('cetakNamaSekolah').innerText = sData.namaSekolah || '-';
+                    document.getElementById('cetakNamaKamad').innerText = sData.namaKamad || '-';
+                    document.getElementById('cetakTahun').innerText = sData.tahun || '2026';
+                    document.getElementById('cetakSignKamad').innerText = sData.namaKamad || '( Kepala Madrasah )';
+                }
+
+                const snapIndikator = await db.collection("instrumen_pkkm").orderBy("noKomponen").get();
+                const snapBerkas = await db.collection("sekolah").doc(sekolahId).collection("berkas_guru").get();
+
+                let indikatorList = [];
+                snapIndikator.forEach(doc => indikatorList.push({ id: doc.id, ...doc.data() }));
+
+                let mapBerkas = {};
+                snapBerkas.forEach(doc => mapBerkas[doc.id] = doc.data());
+
+                db.collection("sekolah").doc(sekolahId).collection("penilaian_asesor").onSnapshot((snapNilai) => {
+                    let mapNilai = {};
+                    snapNilai.forEach(doc => mapNilai[doc.id] = doc.data());
+
+                    let tbodyHtml = '';
+                    let dinilaiCount = 0;
+                    let jumlahSkor = 0;
+
+                    let grouped = {};
+                    indikatorList.forEach(item => {
+                        const namaInstrumen = (item.instrumen || 'INSTRUMEN PENILAIAN').trim();
+                        if (!grouped[namaInstrumen]) {
+                            grouped[namaInstrumen] = { items: [] };
+                        }
+                        grouped[namaInstrumen].items.push(item);
+                    });
+
+                    Object.keys(grouped).forEach(namaInst => {
+                        const group = grouped[namaInst];
+                        
+                        // Baris Header Hijau Bersih Tanpa Angka Komponen
+                        tbodyHtml += `
+                            <tr class="component-row">
+                                <td colspan="10" class="py-1.5 px-3 uppercase">
+                                    <strong>${namaInst}</strong>
+                                </td>
+                            </tr>
+                        `;
+
+                        let skorCounts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+                        let totalSkorKomp = 0;
+                        let maxSkorKomp = group.items.length * 4;
+
+                        group.items.forEach((item) => {
+                            const listBukti = Array.isArray(item.buktiOtentik) ? item.buktiOtentik : [item.buktiOtentik || 'Dokumen'];
+                            const nilai = mapNilai[item.id] || { skor: null };
+
+                            if (nilai.skor && !isNaN(nilai.skor)) {
+                                dinilaiCount++;
+                                const sNum = Number(nilai.skor);
+                                jumlahSkor += sNum;
+                                if (skorCounts[sNum] !== undefined) skorCounts[sNum]++;
+                                totalSkorKomp += sNum;
+                            }
+
+                            let buktiText = '';
+                            listBukti.forEach((b, idx) => {
+                                const bKey = `${item.id}_${idx}`;
+                                const berkas = mapBerkas[bKey];
+                                buktiText += `• ${b} ${berkas ? `[File: ${berkas.fileName}]` : '[Belum ada file]'}<br>`;
+                            });
+
+                            let skorColsHtml = '';
+                            for (let s = 1; s <= 4; s++) {
+                                const isSelected = Number(nilai.skor) === s;
+                                skorColsHtml += `<td class="text-center align-middle">${isSelected ? '<span class="check-mark">✓</span>' : ''}</td>`;
+                            }
+
+                            tbodyHtml += `
+                                <tr>
+                                    <td class="text-center font-bold align-top">${item.noKomponen || '-'}</td>
+                                    <td class="align-top"><strong>${item.tugasUtama || '-'}</strong></td>
+                                    <td class="text-center font-bold align-top">${item.noIndikator || '-'}</td>
+                                    <td class="align-top">${item.indikatorKerja || '-'}</td>
+                                    <td class="align-top">${item.dataKinerja || '-'}</td>
+                                    ${skorColsHtml}
+                                    <td class="align-top text-[10px]">${buktiText}</td>
+                                </tr>
+                            `;
+                        });
+
+                        // Baris Subtotal / Rekapitulasi Total Skor Gabungan
+                        tbodyHtml += `
+                            <tr class="subtotal-row">
+                                <td colspan="5" class="text-right font-bold uppercase">SKOR</td>
+                                <td class="text-center font-bold">${skorCounts[1]}</td>
+                                <td class="text-center font-bold">${skorCounts[2]}</td>
+                                <td class="text-center font-bold">${skorCounts[3]}</td>
+                                <td class="text-center font-bold">${skorCounts[4]}</td>
+                                <td></td>
+                            </tr>
+                            <tr class="subtotal-row">
+                                <td colspan="5" class="text-right font-bold uppercase">SKOR MAKSIMAL</td>
+                                <td colspan="4" class="text-center font-bold">${maxSkorKomp}</td>
+                                <td></td>
+                            </tr>
+                            <tr class="subtotal-row">
+                                <td colspan="5" class="text-right font-bold uppercase">PEROLEHAN SKOR ${namaInst.toUpperCase()}</td>
+                                <td colspan="4" class="text-center font-bold">${totalSkorKomp}</td>
+                                <td></td>
+                            </tr>
+                        `;
+                    });
+
+                    document.getElementById('cetakTabelBody').innerHTML = tbodyHtml;
+
+                    const rataRata = dinilaiCount > 0 ? (jumlahSkor / dinilaiCount) : 0;
+                    let predikat = '-';
+                    if (dinilaiCount > 0) {
+                        if (rataRata >= 3.5) predikat = 'Amat Baik (A)';
+                        else if (rataRata >= 2.8) predikat = 'Baik (B)';
+                        else if (rataRata >= 2.0) predikat = 'Cukup (C)';
+                        else predikat = 'Kurang (D)';
+                    }
+
+                    document.getElementById('cetakTotalDinilai').innerText = `${dinilaiCount} / ${indikatorList.length}`;
+                    document.getElementById('cetakJumlahSkor').innerText = jumlahSkor;
+                    document.getElementById('cetakRataRata').innerText = rataRata.toFixed(2);
+                    document.getElementById('cetakPredikat').innerText = predikat;
+                });
+
+            } catch (err) {
+                alert("Gagal memuat data cetak: " + err.message);
+            }
+        });
+    </script>
+</body>
+</html>

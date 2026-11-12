@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Guru - Unggah Bukti Kinerja PKKM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800 p-4 md:p-6">
+
+    <div class="max-w-4xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-base font-bold text-slate-800">
+                    <i class="fa-solid fa-cloud-arrow-up text-emerald-600 mr-2"></i> Panel Guru - Unggah Bukti PKKM
+                </h1>
+                <p class="text-xs text-slate-500">Unggah berkas bukti otentik satu per satu sesuai rincian butir yang diminta.</p>
+            </div>
+            <div class="flex gap-2 w-full md:w-auto">
+                <a href="Admin.html" class="px-3 py-2 bg-slate-800 text-white text-xs font-semibold rounded-xl hover:bg-slate-900 transition text-center">
+                    <i class="fa-solid fa-gears mr-1"></i> Panel Admin
+                </a>
+            </div>
+        </div>
+
+        <!-- Pilih Sekolah -->
+        <div id="sectionPilihSekolah" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+            <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <i class="fa-solid fa-school text-emerald-600 mr-1"></i> Langkah 1: Pilih Asal Sekolah / Madrasah
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                <div class="md:col-span-2">
+                    <select id="selectPilihSekolah" class="w-full px-3 py-2.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white">
+                        <option value="">-- Memuat daftar sekolah dari Firebase... --</option>
+                    </select>
+                </div>
+                <div>
+                    <button onclick="konfirmasiPilihSekolah()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow transition">
+                        <i class="fa-solid fa-right-to-bracket mr-1"></i> Buka Instrumen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Banner Informasi Sekolah Aktif -->
+        <div id="sectionInfoSekolah" class="bg-white border-l-4 border-emerald-600 rounded-2xl shadow-sm p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hidden">
+            <div class="flex items-center gap-3.5">
+                <div id="infoLogoContainer"></div>
+                <div>
+                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-md uppercase tracking-wider">Sekolah Terpilih</span>
+                    <h2 id="infoNamaSekolah" class="text-sm font-bold text-slate-800 mt-1">-</h2>
+                    <p id="infoKamad" class="text-xs text-slate-500">-</p>
+                </div>
+            </div>
+            <button onclick="gantiSekolah()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition shrink-0">
+                <i class="fa-solid fa-right-left mr-1"></i> Ganti Sekolah
+            </button>
+        </div>
+
+        <!-- Bagian Daftar Indikator -->
+        <div id="sectionInstrumenGuru" class="space-y-4 hidden">
+            
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <div>
+                        <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                            <i class="fa-solid fa-list-check text-emerald-600 mr-1"></i> Daftar Indikator & Unggah Bukti Otentik Per Poin
+                        </h2>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Setiap poin bukti otentik memiliki tempat unggah filenya sendiri.</p>
+                    </div>
+                    <div>
+                        <span id="badgeProgresUpload" class="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-xl">
+                            Poin Terunggah: 0 / 0
+                        </span>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filter Kategori Instrumen:</label>
+                        <select id="filterInstrumenGuru" onchange="renderDaftarIndikator()" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white">
+                            <option value="ALL">Semua Instrumen</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filter Status:</label>
+                        <select id="filterStatusGuru" onchange="renderDaftarIndikator()" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white">
+                            <option value="ALL">Semua Status</option>
+                            <option value="PENDING">Belum Lengkap</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kontainer Kartu Indikator -->
+            <div id="containerIndikatorGuru" class="space-y-4">
+                <p class="text-xs text-slate-500 italic text-center py-8">Memuat data dari Firebase...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="guru.js"></script>
+</body>
+</html>
