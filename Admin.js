@@ -1,20 +1,23 @@
 const firebaseConfig = {
 
-  apiKey: "AIzaSyDm1zMNDjd06vsZOddTgho6AXFpxHYOSpM",
+  apiKey: "AIzaSyAREhPCc4WaFVecQN2_Lu4eoK0oXohZ7Fg",
 
-  authDomain: "kebun-ilmu.firebaseapp.com",
+  authDomain: "ulangansains2025.firebaseapp.com",
 
-  projectId: "kebun-ilmu",
+  databaseURL: "https://ulangansains2025-default-rtdb.asia-southeast1.firebasedatabase.app",
 
-  storageBucket: "kebun-ilmu.firebasestorage.app",
+  projectId: "ulangansains2025",
 
-  messagingSenderId: "1096325100528",
+  storageBucket: "ulangansains2025.firebasestorage.app",
 
-  appId: "1:1096325100528:web:c7575d081ff17a015c2335",
+  messagingSenderId: "514614164498",
 
-  measurementId: "G-QBCL39G8G8"
+  appId: "1:514614164498:web:324090f888d301e831accb",
+
+  measurementId: "G-Y7027DY382"
 
 };
+
 
 
 if (!firebase.apps.length) {
