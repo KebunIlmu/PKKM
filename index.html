@@ -9,6 +9,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-800">
 
@@ -62,5 +65,30 @@
 
     <!-- External JavaScript -->
     <script src="script.js"></script>
+    <script>
+        // Konfigurasi Firebase Anda (ambil dari Project Settings Firebase Anda)
+        const firebaseConfig = {
+
+  apiKey: "AIzaSyDm1zMNDjd06vsZOddTgho6AXFpxHYOSpM",
+
+  authDomain: "kebun-ilmu.firebaseapp.com",
+
+  projectId: "kebun-ilmu",
+
+  storageBucket: "kebun-ilmu.firebasestorage.app",
+
+  messagingSenderId: "1096325100528",
+
+  appId: "1:1096325100528:web:c7575d081ff17a015c2335",
+
+  measurementId: "G-QBCL39G8G8"
+
+};
+
+        
+        // Inisialisasi Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+    </script>
 </body>
 </html>
