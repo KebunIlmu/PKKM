@@ -1,13 +1,23 @@
 // --- KONFIGURASI FIREBASE ---
 // (Sesuaikan konfigurasi di bawah ini dengan project Firebase Anda)
 const firebaseConfig = {
-    apiKey: "MASUKKAN_API_KEY_ANDA",
-    authDomain: "PROJECT_ID.firebaseapp.com",
-    projectId: "PROJECT_ID",
-    storageBucket: "PROJECT_ID.appspot.com",
-    messagingSenderId: "SENDER_ID",
-    appId: "APP_ID"
+
+  apiKey: "AIzaSyDm1zMNDjd06vsZOddTgho6AXFpxHYOSpM",
+
+  authDomain: "kebun-ilmu.firebaseapp.com",
+
+  projectId: "kebun-ilmu",
+
+  storageBucket: "kebun-ilmu.firebasestorage.app",
+
+  messagingSenderId: "1096325100528",
+
+  appId: "1:1096325100528:web:c7575d081ff17a015c2335",
+
+  measurementId: "G-QBCL39G8G8"
+
 };
+
 
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
