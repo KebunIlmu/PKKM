@@ -656,7 +656,11 @@ function uploadFile(uniqueId) {
     const fileInput = document.getElementById(`file_${uniqueId}`);
     const btn = document.getElementById(`btn_${uniqueId}`);
     const statusDiv = document.getElementById(`status_${uniqueId}`);
-    const gasUrl = localStorage.getItem('gas_url') || '';
+    const gasUrl = document.getElementById('gasUrlInput').value.trim() || localStorage.getItem('gas_url') || '';
+    
+    // Ambil data identitas madrasah
+    const namaMadrasah = document.getElementById('namaMadrasah')?.value || 'Madrasah Belum Diisi';
+    const namaKamad = document.getElementById('namaKamad')?.value || '-';
 
     if (fileInput.files.length === 0) {
         alert("Silakan pilih file terlebih dahulu untuk poin ini!");
@@ -669,7 +673,7 @@ function uploadFile(uniqueId) {
     btn.disabled = true;
     btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Mengunggah...`;
     statusDiv.className = "text-xs font-medium text-blue-600";
-    statusDiv.innerHTML = "Mengirim file ke Google Drive...";
+    statusDiv.innerHTML = "Mengirim file ke Google Drive & Database...";
     statusDiv.classList.remove('hidden');
 
     reader.onload = function () {
@@ -677,19 +681,18 @@ function uploadFile(uniqueId) {
         const payload = {
             filename: file.name,
             mimeType: file.type,
-            base64: base64Data
+            base64: base64Data,
+            uniqueId: uniqueId
         };
 
-        if (!gasUrl || gasUrl.includes("MASUKKAN")) {
-            setTimeout(() => {
-                statusDiv.className = "text-xs font-bold text-emerald-600 flex items-center gap-1";
-                statusDiv.innerHTML = `<i class="fa-solid fa-circle-check"></i> ✅ Terupload (Simulasi: ${file.name})`;
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Unggah File`;
-            }, 1000);
+        if (!gasUrl) {
+            alert("URL Google Apps Script belum diisi!");
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Unggah File`;
             return;
         }
 
+        // 1. Kirim file ke Google Apps Script (Google Drive)
         fetch(gasUrl, {
             method: "POST",
             mode: "no-cors",
@@ -697,8 +700,21 @@ function uploadFile(uniqueId) {
             body: JSON.stringify(payload)
         })
         .then(() => {
+            // 2. Catat log ke Firebase Firestore agar masuk ke database penilaian
+            if (typeof db !== 'undefined') {
+                db.collection("penilaian_pkkm").doc(uniqueId).set({
+                    uniqueId: uniqueId,
+                    namaMadrasah: namaMadrasah,
+                    namaKamad: namaKamad,
+                    fileName: file.name,
+                    uploadedAt: new Date().toISOString(),
+                    status: "Menunggu Penilaian",
+                    nilai: 0
+                }, { merge: true });
+            }
+
             statusDiv.className = "text-xs font-bold text-emerald-600 flex items-center gap-1";
-            statusDiv.innerHTML = `<i class="fa-solid fa-circle-check"></i> ✅ Terupload (${file.name})`;
+            statusDiv.innerHTML = `<i class="fa-solid fa-circle-check"></i> ✅ Berhasil Diunggah & Tercatat!`;
         })
         .catch(error => {
             statusDiv.className = "text-xs font-medium text-rose-600";
