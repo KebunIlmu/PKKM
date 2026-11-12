@@ -1,11 +1,12 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Admin - Konfigurasi PKKM</title>
+    <title>Panel Admin - Konfigurasi E-PKKM</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -13,21 +14,25 @@
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-800 flex items-center justify-center p-4">
 
-    <div class="max-w-xl w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8 space-y-6">
+    <div class="max-w-lg w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8 space-y-6">
+        
+        <!-- Header Panel -->
         <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
             <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-xl font-bold">
                 <i class="fa-solid fa-gears"></i>
             </div>
             <div>
                 <h1 class="text-base font-bold text-slate-800">Panel Konfigurasi Admin</h1>
-                <p class="text-xs text-slate-500">Atur Identitas Madrasah dan URL Google Apps Script</p>
+                <p class="text-xs text-slate-500">Atur Identitas Madrasah & URL Google Apps Script</p>
             </div>
         </div>
 
+        <!-- Form Input Admin -->
         <div class="space-y-4">
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">URL Web App Google Apps Script (GAS)</label>
                 <input type="text" id="adminGasUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <p class="text-[10px] text-slate-400 mt-1">URL ini digunakan untuk menghubungkan upload file ke Google Drive Anda.</p>
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Madrasah</label>
@@ -47,12 +52,18 @@
             </button>
         </div>
 
+        <!-- Navigasi Halaman Lain -->
         <div class="flex justify-between items-center pt-4 border-t border-slate-100 text-xs">
-            <a href="guru.html" class="text-emerald-600 font-semibold hover:underline"><i class="fa-solid fa-arrow-right mr-1"></i> Ke Panel Guru (Upload)</a>
-            <a href="penilaian.html" class="text-slate-600 font-semibold hover:underline"><i class="fa-solid fa-arrow-right mr-1"></i> Ke Panel Asesor</a>
+            <a href="guru.html" class="text-emerald-600 font-semibold hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-arrow-right"></i> Ke Panel Guru (Upload)
+            </a>
+            <a href="penilaian.html" class="text-slate-600 font-semibold hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-arrow-right"></i> Ke Panel Asesor
+            </a>
         </div>
     </div>
 
+    <!-- Script Terpusat -->
     <script src="script.js"></script>
     <script>
         window.addEventListener('DOMContentLoaded', () => {
