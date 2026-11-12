@@ -1,94 +1,123 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-PKKM Tahunan - Upload Bukti Fisik Terperinci</title>
+    <title>Portal Utama - Penilaian Kinerja Kepala Madrasah (PKKM)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Firebase SDK (Compat Version) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
+        .hero-gradient {
+            background: linear-gradient(135deg, #065f46 0%, #047857 50%, #059669 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+    </style>
 </head>
-<body class="bg-slate-100 min-h-screen font-sans text-slate-800">
+<body class="min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
 
-    <!-- Header -->
-    <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-xl font-bold">
-                    <i class="fa-solid fa-school-flag"></i>
-                </div>
-                <div>
-                    <h1 class="text-lg font-bold tracking-tight">E-PKKM TAHUNAN</h1>
-                    <p class="text-xs text-emerald-100">Upload Bukti Otentik Terperinci per Poin Dokumen</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <input type="text" id="gasUrlInput" placeholder="URL Web App Google Apps Script" class="px-3 py-2 text-xs rounded-xl bg-emerald-800/60 border border-emerald-600 text-white placeholder-emerald-300 focus:outline-none focus:ring-2 focus:ring-white w-64">
-                <button onclick="saveGasUrl()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow transition">Simpan URL GAS</button>
-            </div>
+    <!-- Header / Hero Section Modern & Fresh -->
+    <header class="hero-gradient text-white pt-12 pb-20 px-4 text-center relative overflow-hidden shadow-lg">
+        <!-- Elemen Dekoratif Background Dinamis -->
+        <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-white/5 blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-emerald-400/10 blur-3xl pointer-events-none"></div>
+
+        <div class="max-w-4xl mx-auto space-y-4 relative z-10">
+            <span class="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md border border-white/20 text-emerald-100 text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-sm">
+                <i class="fa-solid fa-shield-halved text-emerald-300"></i> Sistem Penilaian Kinerja
+            </span>
+            <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
+                Penilaian Kinerja Kepala Madrasah
+            </h1>
+            <p class="text-xs md:text-sm text-emerald-100 max-w-2xl mx-auto leading-relaxed">
+                Platform terintegrasi berbasis digital untuk pengelolaan instrumen, unggah bukti otentik portofolio, serta asesmen kinerja yang transparan dan akurat.
+            </p>
         </div>
     </header>
 
-    <!-- Main Container -->
-    <main class="max-w-7xl mx-auto px-4 py-8">
-        
-        <!-- Identitas Madrasah -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
-            <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4"><i class="fa-solid fa-id-card text-emerald-600 mr-2"></i> Identitas Madrasah & Kepala Madrasah</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Kepala Madrasah</label>
-                    <input type="text" id="namaKamad" placeholder="Nama lengkap & gelar" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+    <!-- Konten Utama: 3 Panel Interaktif (Admin, Guru, Pengawas) -->
+    <main class="max-w-6xl mx-auto px-4 -mt-10 mb-16 w-full flex-grow relative z-20">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- Panel 1: Panel Admin -->
+            <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-100 p-8 flex flex-col justify-between transition-all duration-300 card-hover group">
+                <div class="space-y-5">
+                    <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">Manajemen Sistem</span>
+                        <h3 class="text-xl font-bold text-slate-800 mt-2">Panel Admin</h3>
+                    </div>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        Pusat kendali database madrasah, pengaturan sistem, dan pengelolaan bank data instrumen PKKM secara terstruktur.
+                    </p>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Madrasah</label>
-                    <input type="text" id="namaMadrasah" placeholder="Contoh: MAN 1..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tahun Penilaian</label>
-                    <input type="text" id="tahunPenilaian" value="2026" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <div class="mt-8 pt-4 border-t border-slate-100">
+                    <a href="admin.html" class="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-blue-600 text-white text-xs font-semibold py-3.5 px-4 rounded-xl shadow-md transition-all duration-300 group-hover:shadow-blue-500/25">
+                        <span>Akses Panel Admin</span>
+                        <i class="fa-solid fa-arrow-right text-[10px] transition-transform group-hover:translate-x-1"></i>
+                    </a>
                 </div>
             </div>
-        </div>
 
-        <!-- Komponen Instrumen -->
-        <div id="instrumenContainer" class="space-y-6">
-            <!-- Data dirender dinamis -->
-        </div>
+            <!-- Panel 2: Panel Guru -->
+            <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-100 p-8 flex flex-col justify-between transition-all duration-300 card-hover group">
+                <div class="space-y-5">
+                    <div class="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">Portofolio & Berkas</span>
+                        <h3 class="text-xl font-bold text-slate-800 mt-2">Panel Guru</h3>
+                    </div>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        Unggah bukti otentik kualitas kinerja, lengkapi kelengkapan portofolio, dan pantau status dokumen madrasah dengan mudah.
+                    </p>
+                </div>
+                <div class="mt-8 pt-4 border-t border-slate-100">
+                    <a href="guru.html" class="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-emerald-600 text-white text-xs font-semibold py-3.5 px-4 rounded-xl shadow-md transition-all duration-300 group-hover:shadow-emerald-500/25">
+                        <span>Akses Panel Guru</span>
+                        <i class="fa-solid fa-arrow-right text-[10px] transition-transform group-hover:translate-x-1"></i>
+                    </a>
+                </div>
+            </div>
 
+            <!-- Panel 3: Panel Pengawas / Asesor -->
+            <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-100 p-8 flex flex-col justify-between transition-all duration-300 card-hover group">
+                <div class="space-y-5">
+                    <div class="w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-purple-600 bg-purple-50 px-2.5 py-1 rounded-md">Verifikasi & Penilaian</span>
+                        <h3 class="text-xl font-bold text-slate-800 mt-2">Panel Pengawas / Asesor</h3>
+                    </div>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        Lakukan verifikasi berkas secara langsung, berikan skor asesmen real-time, dan cetak laporan resmi berformat landscape.
+                    </p>
+                </div>
+                <div class="mt-8 pt-4 border-t border-slate-100">
+                    <a href="penilaian.html" class="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-purple-600 text-white text-xs font-semibold py-3.5 px-4 rounded-xl shadow-md transition-all duration-300 group-hover:shadow-purple-500/25">
+                        <span>Akses Panel Asesor</span>
+                        <i class="fa-solid fa-arrow-right text-[10px] transition-transform group-hover:translate-x-1"></i>
+                    </a>
+                </div>
+            </div>
+
+        </div>
     </main>
 
-    <!-- External JavaScript -->
-    <script src="script.js"></script>
-    <script>
-        // Konfigurasi Firebase Anda (ambil dari Project Settings Firebase Anda)
-        const firebaseConfig = {
+    <!-- Footer Modern -->
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
+        <p>&copy; 2026 Penilaian Kinerja Kepala Madrasah (PKKM). Didesain untuk Efisiensi & Kualitas Kinerja Unggul.</p>
+    </footer>
 
-  apiKey: "AIzaSyDm1zMNDjd06vsZOddTgho6AXFpxHYOSpM",
-
-  authDomain: "kebun-ilmu.firebaseapp.com",
-
-  projectId: "kebun-ilmu",
-
-  storageBucket: "kebun-ilmu.firebasestorage.app",
-
-  messagingSenderId: "1096325100528",
-
-  appId: "1:1096325100528:web:c7575d081ff17a015c2335",
-
-  measurementId: "G-QBCL39G8G8"
-
-};
-
-        
-        // Inisialisasi Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-    </script>
 </body>
 </html>
