@@ -1,5 +1,3 @@
-// --- KONFIGURASI FIREBASE ---
-// (Sesuaikan konfigurasi di bawah ini dengan project Firebase Anda)
 const firebaseConfig = {
 
   apiKey: "AIzaSyDm1zMNDjd06vsZOddTgho6AXFpxHYOSpM",
@@ -24,48 +22,66 @@ if (!firebase.apps.length) {
 }
 const db = firebase.firestore();
 
-// Jalankan saat halaman admin selesai dimuat
 window.addEventListener('DOMContentLoaded', () => {
-    muatPengaturanAdmin();
+    muatDaftarSekolah();
 });
 
-// Fungsi untuk menyimpan pengaturan dari Panel Admin ke Firebase Firestore
-function simpanPengaturanAdmin() {
-    const gasUrl = document.getElementById('adminGasUrl').value.trim();
-    const namaMadrasah = document.getElementById('adminNamaMadrasah').value.trim();
-    const namaKamad = document.getElementById('adminNamaKamad').value.trim();
-    const tahunPenilaian = document.getElementById('adminTahun').value.trim();
+function simpanSekolah() {
+    const namaSekolah = document.getElementById('inputNamaSekolah').value.trim();
+    const namaKamad = document.getElementById('inputNamaKamad').value.trim();
+    const gasUrl = document.getElementById('inputGasUrl').value.trim();
+    const tahun = document.getElementById('inputTahun').value.trim();
 
-    if (!gasUrl || !namaMadrasah) {
-        alert("URL Google Apps Script dan Nama Madrasah wajib diisi!");
+    if (!namaSekolah || !gasUrl) {
+        alert("Nama Sekolah dan URL GAS wajib diisi!");
         return;
     }
 
-    db.collection("pengaturan").doc("identitas").set({
-        gasUrl: gasUrl,
-        namaMadrasah: namaMadrasah,
+    // Buat ID unik berdasarkan nama sekolah (ubah spasi jadi underscore)
+    const sekolahId = namaSekolah.toLowerCase().replace(/\s+/g, '_');
+
+    db.collection("sekolah").doc(sekolahId).set({
+        sekolahId: sekolahId,
+        namaSekolah: namaSekolah,
         namaKamad: namaKamad,
-        tahunPenilaian: tahunPenilaian
+        gasUrl: gasUrl,
+        tahun: tahun,
+        createdAt: new Date().toISOString()
     })
     .then(() => {
-        alert("Konfigurasi identitas & URL GAS berhasil disimpan ke database!");
+        alert("Data sekolah berhasil disimpan!");
+        muatDaftarSekolah();
+        // Reset form
+        document.getElementById('inputNamaSekolah').value = '';
+        document.getElementById('inputNamaKamad').value = '';
+        document.getElementById('inputGasUrl').value = '';
     })
     .catch((error) => {
-        alert("Gagal menyimpan konfigurasi: " + error.message);
+        alert("Gagal menyimpan: " + error.message);
     });
 }
 
-// Fungsi untuk mengambil data pengaturan yang sudah tersimpan di Firebase
-function muatPengaturanAdmin() {
-    db.collection("pengaturan").doc("identitas").get().then((doc) => {
-        if (doc.exists) {
-            const data = doc.data();
-            document.getElementById('adminGasUrl').value = data.gasUrl || '';
-            document.getElementById('adminNamaMadrasah').value = data.namaMadrasah || '';
-            document.getElementById('adminNamaKamad').value = data.namaKamad || '';
-            document.getElementById('adminTahun').value = data.tahunPenilaian || '2026';
+function muatDaftarSekolah() {
+    const container = document.getElementById('listSekolah');
+    db.collection("sekolah").get().then((querySnapshot) => {
+        let html = '';
+        if (querySnapshot.empty) {
+            container.innerHTML = `<p class="text-xs text-slate-500 italic">Belum ada sekolah yang terdaftar.</p>`;
+            return;
         }
-    }).catch((error) => {
-        console.error("Gagal memuat pengaturan: ", error);
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            html += `
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center text-xs">
+                    <div>
+                        <strong class="text-slate-800 text-sm">${data.namaSekolah}</strong>
+                        <p class="text-slate-500">Kamad: ${data.namaKamad || '-'} | Tahun: ${data.tahun}</p>
+                    </div>
+                    <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-lg text-[10px]">Aktif</span>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
     });
 }
