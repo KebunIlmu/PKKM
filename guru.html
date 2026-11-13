@@ -29,23 +29,29 @@
             </div>
         </div>
 
-        <!-- Pilih Sekolah -->
+       <!-- Pilih Sekolah -->
         <div id="sectionPilihSekolah" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
             <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                <i class="fa-solid fa-school text-emerald-600 mr-1"></i> Langkah 1: Pilih Asal Sekolah / Madrasah
+                <i class="fa-solid fa-school text-emerald-600 mr-1"></i> Langkah 1: Pilih Asal Sekolah & Masukkan Kode Akses
             </h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
-                <div class="md:col-span-2">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Pilih Sekolah / Madrasah</label>
                     <select id="selectPilihSekolah" class="w-full px-3 py-2.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white">
                         <option value="">-- Memuat daftar sekolah dari Firebase... --</option>
                     </select>
                 </div>
                 <div>
-                    <button onclick="konfirmasiPilihSekolah()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow transition">
-                        <i class="fa-solid fa-right-to-bracket mr-1"></i> Buka Instrumen
-                    </button>
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Kode Akses Sekolah</label>
+                    <div class="flex gap-2">
+                        <input type="password" id="inputKodeAksesGuru" placeholder="Masukkan kode akses..." class="w-full px-3 py-2.5 text-xs font-mono border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500">
+                        <button onclick="konfirmasiPilihSekolah()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow transition shrink-0">
+                            <i class="fa-solid fa-right-to-bracket mr-1"></i> Buka Instrumen
+                        </button>
+                    </div>
                 </div>
             </div>
+            <p class="text-[11px] text-slate-400 italic"><i class="fa-solid fa-circle-info mr-1"></i> Kode akses diperoleh dari Administrator / Panel Admin sekolah.</p>
         </div>
 
         <!-- Banner Informasi Sekolah Aktif -->
