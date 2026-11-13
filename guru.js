@@ -52,11 +52,42 @@ function muatDropdownSekolah() {
 function konfirmasiPilihSekolah() {
     const select = document.getElementById('selectPilihSekolah');
     const selectedId = select.value;
+    const inputKode = document.getElementById('inputKodeAksesGuru').value.trim();
+
     if (!selectedId) {
         alert("Silakan pilih sekolah terlebih dahulu!");
         return;
     }
-    verifikasiDanMuatSekolah(selectedId);
+    if (!inputKode) {
+        alert("Silakan masukkan kode akses sekolah!");
+        return;
+    }
+
+    db.collection("sekolah").doc(selectedId).get().then((doc) => {
+        if (!doc.exists) {
+            alert("Data sekolah tidak ditemukan.");
+            return;
+        }
+
+        const data = doc.data();
+        const kodeDatabase = (data.kodeAkses || '').trim().toUpperCase();
+        const kodeInputClean = inputKode.toUpperCase();
+
+        if (kodeDatabase && kodeInputClean !== kodeDatabase) {
+            alert("Kode akses salah! Silakan hubungi Admin sekolah.");
+            return;
+        }
+
+        // Jika kode cocok atau sekolah belum diatur kodenya
+        activeSekolahId = doc.id;
+        activeSekolahData = data;
+        localStorage.setItem('pkkm_active_sekolah_id', doc.id);
+
+        tampilkanHeaderSekolah();
+        muatDataFirebaseGuru();
+    }).catch((err) => {
+        alert("Gagal memverifikasi kode akses: " + err.message);
+    });
 }
 
 function verifikasiDanMuatSekolah(sekolahId) {
@@ -76,7 +107,6 @@ function verifikasiDanMuatSekolah(sekolahId) {
         muatDataFirebaseGuru();
     });
 }
-
 function bersihkanListener() {
     if (unsubIndikator) { unsubIndikator(); unsubIndikator = null; }
     if (unsubBerkas) { unsubBerkas(); unsubBerkas = null; }
