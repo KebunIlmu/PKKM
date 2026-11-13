@@ -17,7 +17,7 @@ const db = firebase.firestore();
 let activeSekolahId = localStorage.getItem('pkkm_active_sekolah_id') || null;
 let activeSekolahData = null;
 let allIndikatorList = [];
-let mapBerkasSekolah = {}; // Format key: `${indikatorId}_${buktiIndex}`
+let mapBerkasSekolah = {}; // Menyimpan semua berkas berdasarkan ID dokumen Firestore
 let mapNilaiAsesor = {};   // Format key: `${indikatorId}`
 
 // Variabel untuk menyimpan listener agar tidak menumpuk saat ganti sekolah
@@ -150,12 +150,12 @@ function muatDataFirebaseGuru() {
         container.innerHTML = `<p class="text-xs text-red-500 italic text-center py-8">Gagal memuat instrumen: ${error.message}</p>`;
     });
 
-    // 2. Real-time Listener Berkas Unggahan Guru
+    // 2. Real-time Listener Berkas Unggahan Guru (Multi-file per dokumen ID unik)
     unsubBerkas = db.collection("sekolah").doc(activeSekolahId).collection("berkas_guru")
         .onSnapshot((snapBerkas) => {
             mapBerkasSekolah = {};
             snapBerkas.forEach(doc => {
-                mapBerkasSekolah[doc.id] = doc.data();
+                mapBerkasSekolah[doc.id] = { id: doc.id, ...doc.data() };
             });
             renderDaftarIndikator();
         });
@@ -188,8 +188,8 @@ function renderDaftarIndikator() {
         
         listBukti.forEach((_, idx) => {
             totalPoinBukti++;
-            const docKey = `${item.id}_${idx}`;
-            if (mapBerkasSekolah[docKey] && mapBerkasSekolah[docKey].fileUrl) {
+            const adaBerkas = Object.values(mapBerkasSekolah).some(b => b.indikatorId === item.id && b.buktiIndex === idx && b.fileUrl);
+            if (adaBerkas) {
                 totalPoinTerunggah++;
             }
         });
@@ -206,8 +206,8 @@ function renderDaftarIndikator() {
                 ? item.buktiOtentik 
                 : [item.buktiOtentik || 'Dokumen Pendukung'];
             const adaYangKosong = listBukti.some((_, idx) => {
-                const berkas = mapBerkasSekolah[`${item.id}_${idx}`];
-                return !berkas || !berkas.fileUrl;
+                const adaBerkas = Object.values(mapBerkasSekolah).some(b => b.indikatorId === item.id && b.buktiIndex === idx && b.fileUrl);
+                return !adaBerkas;
             });
             return adaYangKosong;
         }
@@ -229,91 +229,76 @@ function renderDaftarIndikator() {
 
         let rincianBuktiHtml = '';
         listBukti.forEach((teksBukti, idx) => {
-            const docKey = `${item.id}_${idx}`;
-            const berkas = mapBerkasSekolah[docKey] || null;
+            const listBerkasPoin = Object.values(mapBerkasSekolah).filter(b => b.indikatorId === item.id && b.buktiIndex === idx);
 
-            if (berkas && berkas.fileUrl) {
-                const tanggal = berkas.uploadedAt ? new Date(berkas.uploadedAt).toLocaleDateString('id-ID') : '';
-                const isLink = berkas.tipe === 'link';
-                rincianBuktiHtml += `
-                    <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
-                        <div class="flex justify-between items-start gap-2">
+            let daftarFileHtml = '';
+            if (listBerkasPoin.length > 0) {
+                listBerkasPoin.forEach((berkas) => {
+                    const tanggal = berkas.uploadedAt ? new Date(berkas.uploadedAt).toLocaleDateString('id-ID') : '';
+                    const isLink = berkas.tipe === 'link';
+                    daftarFileHtml += `
+                        <div class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex justify-between items-center gap-2 mt-1.5">
                             <div>
-                                <span class="text-[10px] font-bold text-emerald-800 bg-emerald-200/60 px-2 py-0.5 rounded uppercase">Poin Bukti ${idx + 1}</span>
-                                <p class="text-xs font-bold text-slate-700 mt-1">${teksBukti}</p>
-                                <p class="text-[11px] text-emerald-700 mt-0.5">
-                                    <i class="fa-solid ${isLink ? 'fa-link' : 'fa-file-circle-check'} mr-1"></i> 
-                                    <a href="${berkas.fileUrl}" target="_blank" class="underline font-semibold hover:text-emerald-900">${berkas.fileName}</a> 
-                                    <span class="text-slate-500">(${tanggal})</span>
+                                <p class="text-[11px] text-emerald-900 font-semibold">
+                                    <i class="fa-solid ${isLink ? 'fa-link' : 'fa-file-circle-check'} mr-1 text-emerald-600"></i> 
+                                    <a href="${berkas.fileUrl}" target="_blank" class="underline hover:text-emerald-900">${berkas.fileName}</a> 
+                                    <span class="text-slate-400 text-[10px]">(${tanggal})</span>
                                 </p>
                             </div>
-                            <div class="flex items-center gap-1.5 shrink-0">
+                            <div class="flex items-center gap-1 shrink-0">
                                 <a href="${berkas.fileUrl}" target="_blank" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold rounded-lg shadow-sm"><i class="fa-solid fa-eye mr-1"></i> Lihat</a>
-                                <button onclick="tampilkanFormGantiPoin('${item.id}', ${idx})" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-semibold rounded-lg shadow-sm">Ganti</button>
-                                <button onclick="hapusBerkasPoin('${item.id}', ${idx})" class="px-2.5 py-1 bg-red-500 hover:bg-red-600 text-white text-[11px] font-semibold rounded-lg shadow-sm"><i class="fa-solid fa-trash"></i></button>
+                                <button onclick="hapusBerkasItem('${berkas.id}')" class="px-2.5 py-1 bg-red-500 hover:bg-red-600 text-white text-[11px] font-semibold rounded-lg shadow-sm"><i class="fa-solid fa-trash"></i> Hapus</button>
                             </div>
                         </div>
-                        <div id="formGanti_${item.id}_${idx}" class="hidden pt-2 border-t border-emerald-200 space-y-3">
-                            <div class="flex gap-2 border-b pb-2">
-                                <button onclick="gantiTabForm('${item.id}', ${idx}, 'file')" id="tabGantiFile_${item.id}_${idx}" class="px-3 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white">Upload File</button>
-                                <button onclick="gantiTabForm('${item.id}', ${idx}, 'link')" id="tabGantiLink_${item.id}_${idx}" class="px-3 py-1 text-[11px] font-bold rounded-lg bg-slate-200 text-slate-700">Gunakan Tautan Link</button>
-                            </div>
-                            <div id="kontenGantiFile_${item.id}_${idx}" class="space-y-2">
-                                <input type="file" id="fileInput_${item.id}_${idx}" class="w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-amber-600 file:text-white">
-                                <div class="flex justify-end gap-1">
-                                    <button onclick="batalGantiPoin('${item.id}', ${idx})" class="px-2 py-1 bg-slate-200 text-slate-700 text-[11px] rounded-lg">Batal</button>
-                                    <button onclick="prosesUploadPoin('${item.id}', ${idx})" class="px-3 py-1 bg-amber-600 text-white text-[11px] font-semibold rounded-lg">Simpan File</button>
-                                </div>
-                            </div>
-                            <div id="kontenGantiLink_${item.id}_${idx}" class="space-y-2 hidden">
-                                <input type="text" id="linkInput_${item.id}_${idx}" placeholder="https://forms.gle/... atau https://drive.google.com/..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500">
-                                <div class="flex justify-end gap-1">
-                                    <button onclick="batalGantiPoin('${item.id}', ${idx})" class="px-2 py-1 bg-slate-200 text-slate-700 text-[11px] rounded-lg">Batal</button>
-                                    <button onclick="prosesSimpanLink('${item.id}', ${idx})" class="px-3 py-1 bg-amber-600 text-white text-[11px] font-semibold rounded-lg">Simpan Link</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                    `;
+                });
             } else {
-                rincianBuktiHtml += `
-                    <div class="p-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl space-y-3">
-                        <div>
-                            <span class="text-[10px] font-bold text-slate-600 bg-slate-200 px-2 py-0.5 rounded uppercase">Poin Bukti ${idx + 1}</span>
-                            <p class="text-xs font-bold text-slate-700 mt-1">${teksBukti}</p>
-                        </div>
-                        
-                        <div class="flex gap-2 border-b border-slate-200 pb-2">
-                            <button onclick="gantiTabForm('${item.id}', ${idx}, 'file')" id="tabFile_${item.id}_${idx}" class="px-3 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white transition"><i class="fa-solid fa-upload mr-1"></i> Upload File</button>
-                            <button onclick="gantiTabForm('${item.id}', ${idx}, 'link')" id="tabLink_${item.id}_${idx}" class="px-3 py-1 text-[11px] font-bold rounded-lg bg-slate-200 text-slate-700 transition"><i class="fa-solid fa-link mr-1"></i> Input Tautan (Link)</button>
+                daftarFileHtml = `<p class="text-[11px] text-slate-400 italic mt-1">Belum ada file/tautan diunggah untuk poin ini.</p>`;
+            }
+
+            rincianBuktiHtml += `
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-700 bg-slate-200 px-2 py-0.5 rounded uppercase">Poin Bukti ${idx + 1}</span>
+                        <p class="text-xs font-bold text-slate-800 mt-1">${teksBukti}</p>
+                    </div>
+
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Berkas Terunggah (${listBerkasPoin.length}):</p>
+                        ${daftarFileHtml}
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-200 space-y-2">
+                        <div class="flex gap-2 border-b pb-2">
+                            <button onclick="gantiTabForm('${item.id}', ${idx}, 'file')" id="tabFile_${item.id}_${idx}" class="px-3 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white transition"><i class="fa-solid fa-upload mr-1"></i> Tambah File</button>
+                            <button onclick="gantiTabForm('${item.id}', ${idx}, 'link')" id="tabLink_${item.id}_${idx}" class="px-3 py-1 text-[11px] font-bold rounded-lg bg-slate-200 text-slate-700 transition"><i class="fa-solid fa-link mr-1"></i> Tambah Tautan (Link)</button>
                         </div>
 
                         <div id="kontenFile_${item.id}_${idx}" class="space-y-2">
                             <div class="flex flex-col md:flex-row items-center gap-2">
                                 <input type="file" id="fileInput_${item.id}_${idx}" class="w-full text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer">
-                                <button onclick="prosesUploadPoin('${item.id}', ${idx})" class="w-full md:w-auto px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow transition shrink-0">
-                                    <i class="fa-solid fa-upload mr-1"></i> Upload File
+                                <button onclick="prosesUploadPoinMulti('${item.id}', ${idx})" class="w-full md:w-auto px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow transition shrink-0">
+                                    <i class="fa-solid fa-plus mr-1"></i> Upload & Tambah
                                 </button>
                             </div>
                             <div id="loading_${item.id}_${idx}" class="text-[11px] text-blue-600 font-semibold hidden">
-                                <i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengunggah ke Drive...
+                                <i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengunggah berkas ke Drive...
                             </div>
                         </div>
 
                         <div id="kontenLink_${item.id}_${idx}" class="space-y-2 hidden">
                             <div class="flex flex-col md:flex-row items-center gap-2">
-                                <input type="text" id="linkInput_${item.id}_${idx}" placeholder="Tempel Tautan / URL (cth: Google Drive, Google Docs, YouTube)" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white">
-                                <button onclick="prosesSimpanLink('${item.id}', ${idx})" class="w-full md:w-auto px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow transition shrink-0">
-                                    <i class="fa-solid fa-link mr-1"></i> Simpan Link
+                                <input type="text" id="linkInput_${item.id}_${idx}" placeholder="Tempel URL (Google Drive, Docs, YouTube, dll)" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white">
+                                <button onclick="prosesSimpanLinkMulti('${item.id}', ${idx})" class="w-full md:w-auto px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow transition shrink-0">
+                                    <i class="fa-solid fa-plus mr-1"></i> Simpan Link
                                 </button>
                             </div>
                         </div>
                     </div>
-                `;
-            }
+                </div>
+            `;
         });
 
-        // Badge Status Penilaian Real-time dari Asesor
         let badgePenilaianHtml = '';
         if (nilaiAsesor && (nilaiAsesor.skor || nilaiAsesor.catatan)) {
             badgePenilaianHtml = `
@@ -344,7 +329,7 @@ function renderDaftarIndikator() {
                     ${badgePenilaianHtml}
                 </div>
                 <div class="pt-2 border-t border-slate-100 space-y-2.5">
-                    <label class="block font-bold text-slate-700"><i class="fa-solid fa-folder-open text-emerald-600 mr-1"></i> Bukti Otentik (Pilih Unggah File atau Tautan Link):</label>
+                    <label class="block font-bold text-slate-700"><i class="fa-solid fa-folder-open text-emerald-600 mr-1"></i> Bukti Otentik (Bisa Unggah Banyak File / Tautan Link):</label>
                     <div class="space-y-2">
                         ${rincianBuktiHtml}
                     </div>
@@ -357,59 +342,30 @@ function renderDaftarIndikator() {
 }
 
 function gantiTabForm(indikatorId, idx, mode) {
-    const isGanti = document.getElementById(`formGanti_${indikatorId}_${idx}`) && !document.getElementById(`formGanti_${indikatorId}_${idx}`).classList.contains('hidden');
-    
-    if (isGanti) {
-        const tabFile = document.getElementById(`tabGantiFile_${indikatorId}_${idx}`);
-        const tabLink = document.getElementById(`tabGantiLink_${indikatorId}_${idx}`);
-        const kontenFile = document.getElementById(`kontenGantiFile_${indikatorId}_${idx}`);
-        const kontenLink = document.getElementById(`kontenGantiLink_${indikatorId}_${idx}`);
+    const tabFile = document.getElementById(`tabFile_${indikatorId}_${idx}`);
+    const tabLink = document.getElementById(`tabLink_${indikatorId}_${idx}`);
+    const kontenFile = document.getElementById(`kontenFile_${indikatorId}_${idx}`);
+    const kontenLink = document.getElementById(`kontenLink_${indikatorId}_${idx}`);
 
-        if (mode === 'file') {
-            tabFile.className = "px-3 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white";
-            tabLink.className = "px-3 py-1 text-[11px] font-bold rounded-lg bg-slate-200 text-slate-700";
-            kontenFile.classList.remove('hidden');
-            kontenLink.classList.add('hidden');
-        } else {
-            tabLink.className = "px-3 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white";
-            tabFile.className = "px-3 py-1 text-[11px] font-bold rounded-lg bg-slate-200 text-slate-700";
-            kontenLink.classList.remove('hidden');
-            kontenFile.classList.add('hidden');
-        }
+    if (mode === 'file') {
+        tabFile.className = "px-3 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white transition";
+        tabLink.className = "px-3 py-1 text-[11px] font-bold rounded-lg bg-slate-200 text-slate-700 transition";
+        kontenFile.classList.remove('hidden');
+        kontenLink.classList.add('hidden');
     } else {
-        const tabFile = document.getElementById(`tabFile_${indikatorId}_${idx}`);
-        const tabLink = document.getElementById(`tabLink_${indikatorId}_${idx}`);
-        const kontenFile = document.getElementById(`kontenFile_${indikatorId}_${idx}`);
-        const kontenLink = document.getElementById(`kontenLink_${indikatorId}_${idx}`);
-
-        if (mode === 'file') {
-            tabFile.className = "px-3 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white transition";
-            tabLink.className = "px-3 py-1 text-[11px] font-bold rounded-lg bg-slate-200 text-slate-700 transition";
-            kontenFile.classList.remove('hidden');
-            kontenLink.classList.add('hidden');
-        } else {
-            tabLink.className = "px-3 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white transition";
-            tabFile.className = "px-3 py-1 text-[11px] font-bold rounded-lg bg-slate-200 text-slate-700 transition";
-            kontenLink.classList.remove('hidden');
-            kontenFile.classList.add('hidden');
-        }
+        tabLink.className = "px-3 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white transition";
+        tabFile.className = "px-3 py-1 text-[11px] font-bold rounded-lg bg-slate-200 text-slate-700 transition";
+        kontenLink.classList.remove('hidden');
+        kontenFile.classList.add('hidden');
     }
 }
 
-function tampilkanFormGantiPoin(indikatorId, idx) {
-    document.getElementById(`formGanti_${indikatorId}_${idx}`).classList.remove('hidden');
-}
-
-function batalGantiPoin(indikatorId, idx) {
-    document.getElementById(`formGanti_${indikatorId}_${idx}`).classList.add('hidden');
-}
-
-function prosesUploadPoin(indikatorId, idx) {
+async function prosesUploadPoinMulti(indikatorId, idx) {
     const fileInput = document.getElementById(`fileInput_${indikatorId}_${idx}`);
     const loadingDiv = document.getElementById(`loading_${indikatorId}_${idx}`);
 
     if (!fileInput || fileInput.files.length === 0) {
-        alert("Silakan pilih file untuk poin bukti ini terlebih dahulu!");
+        alert("Silakan pilih file terlebih dahulu!");
         return;
     }
 
@@ -431,44 +387,32 @@ function prosesUploadPoin(indikatorId, idx) {
     reader.readAsDataURL(file);
     reader.onload = async function() {
         const base64Data = reader.result.split(',')[1];
-        const docKey = `${indikatorId}_${idx}`;
-
         const payload = {
             action: "uploadFile",
             sekolahId: activeSekolahId,
             namaSekolah: activeSekolahData.namaSekolah,
             indikatorId: indikatorId,
             buktiIndex: idx,
-            fileName: `${indikatorId}_bukti${idx + 1}_${file.name}`,
+            fileName: `${indikatorId}_b${idx + 1}_${Date.now()}_${file.name}`,
             originalName: file.name,
             mimeType: file.type,
             fileData: base64Data
         };
 
         try {
-            const response = await fetch(gasUrl, {
-                method: "POST",
-                body: JSON.stringify(payload)
-            });
-
+            const response = await fetch(gasUrl, { method: "POST", body: JSON.stringify(payload) });
             let driveFileUrl = "#";
             let driveFileId = "";
-
             if (response.ok) {
                 const resJson = await response.json();
                 if (resJson.fileUrl) driveFileUrl = resJson.fileUrl;
                 if (resJson.fileId) driveFileId = resJson.fileId;
             }
-
-            await simpanKeFirebase(docKey, file.name, driveFileUrl, driveFileId, 'file');
+            await simpanBerkasBaruKeFirebase(indikatorId, idx, file.name, driveFileUrl, driveFileId, 'file');
         } catch (err) {
             try {
-                await fetch(gasUrl, {
-                    method: "POST",
-                    mode: "no-cors",
-                    body: JSON.stringify(payload)
-                });
-                await simpanKeFirebase(docKey, file.name, "#", "", 'file');
+                await fetch(gasUrl, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) });
+                await simpanBerkasBaruKeFirebase(indikatorId, idx, file.name, "#", "", 'file');
             } catch (fallbackErr) {
                 alert("Gagal mengunggah: " + fallbackErr.message);
                 if (loadingDiv) loadingDiv.classList.add('hidden');
@@ -477,22 +421,15 @@ function prosesUploadPoin(indikatorId, idx) {
     };
 }
 
-async function prosesSimpanLink(indikatorId, idx) {
+async function prosesSimpanLinkMulti(indikatorId, idx) {
     const linkInput = document.getElementById(`linkInput_${indikatorId}_${idx}`);
     const urlValue = linkInput ? linkInput.value.trim() : '';
 
-    if (!urlValue) {
-        alert("Silakan masukkan tautan/URL terlebih dahulu!");
+    if (!urlValue || (!urlValue.startsWith('http://') && !urlValue.startsWith('https://'))) {
+        alert("Masukkan tautan/URL yang valid (diawali http:// atau https://)");
         return;
     }
 
-    if (!urlValue.startsWith('http://') && !urlValue.startsWith('https://')) {
-        alert("Tautan harus diawali dengan http:// atau https://");
-        return;
-    }
-
-    const docKey = `${indikatorId}_${idx}`;
-    
     let namaTautan = "Tautan Eksternal";
     try {
         const parsedUrl = new URL(urlValue);
@@ -501,31 +438,26 @@ async function prosesSimpanLink(indikatorId, idx) {
         namaTautan = "Tautan Dokumen";
     }
 
-    await simpanKeFirebase(docKey, namaTautan, urlValue, null, 'link');
+    await simpanBerkasBaruKeFirebase(indikatorId, idx, namaTautan, urlValue, null, 'link');
+    linkInput.value = '';
 }
 
-async function simpanKeFirebase(docKey, fileName, fileUrl, driveFileId, tipe) {
-    const dataBerkas = {
-        docKey: docKey,
+async function simpanBerkasBaruKeFirebase(indikatorId, idx, fileName, fileUrl, driveFileId, tipe) {
+    const colRef = db.collection("sekolah").doc(activeSekolahId).collection("berkas_guru");
+    await colRef.add({
+        indikatorId: indikatorId,
+        buktiIndex: idx,
         fileName: fileName,
         fileUrl: fileUrl,
         driveFileId: driveFileId || null,
         tipe: tipe || 'file',
         uploadedAt: new Date().toISOString()
-    };
-
-    await db.collection("sekolah")
-        .doc(activeSekolahId)
-        .collection("berkas_guru")
-        .doc(docKey)
-        .set(dataBerkas, { merge: true });
+    });
 }
 
-async function hapusBerkasPoin(indikatorId, idx) {
-    if (!confirm("Hapus berkas/tautan bukti poin ini?")) return;
-
-    const docKey = `${indikatorId}_${idx}`;
-    const berkasLama = mapBerkasSekolah[docKey];
+async function hapusBerkasItem(berkasId) {
+    if (!confirm("Hapus berkas/tautan ini?")) return;
+    const berkasLama = mapBerkasSekolah[berkasId];
     const gasUrl = activeSekolahData ? activeSekolahData.gasUrl : null;
 
     try {
@@ -536,12 +468,7 @@ async function hapusBerkasPoin(indikatorId, idx) {
                 body: JSON.stringify({ action: "deleteFile", fileId: berkasLama.driveFileId })
             }).catch(() => {});
         }
-
-        await db.collection("sekolah")
-            .doc(activeSekolahId)
-            .collection("berkas_guru")
-            .doc(docKey)
-            .delete();
+        await db.collection("sekolah").doc(activeSekolahId).collection("berkas_guru").doc(berkasId).delete();
     } catch (err) {
         alert("Gagal menghapus: " + err.message);
     }
