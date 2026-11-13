@@ -20,6 +20,10 @@ let allIndikatorList = [];
 let mapBerkasSekolah = {};
 let mapNilaiAsesor = {};
 
+let unsubIndikator = null;
+let unsubBerkas = null;
+let unsubNilai = null;
+
 window.addEventListener('DOMContentLoaded', () => {
     if (activeSekolahId) {
         verifikasiDanMuatSekolahAsesor(activeSekolahId);
@@ -30,7 +34,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function muatDropdownSekolahAsesor() {
     const select = document.getElementById('selectPilihSekolahAsesor');
-    db.collection("sekolah").get().then((snapshot) => {
+    db.collection("sekolah").onSnapshot((snapshot) => {
         if (snapshot.empty) {
             select.innerHTML = `<option value="">Belum ada data sekolah di Firebase</option>`;
             return;
@@ -72,8 +76,15 @@ function verifikasiDanMuatSekolahAsesor(sekolahId) {
     });
 }
 
+function bersihkanListenerAsesor() {
+    if (unsubIndikator) { unsubIndikator(); unsubIndikator = null; }
+    if (unsubBerkas) { unsubBerkas(); unsubBerkas = null; }
+    if (unsubNilai) { unsubNilai(); unsubNilai = null; }
+}
+
 function gantiSekolahAsesor() {
     if (confirm("Ganti sekolah penilaian?")) {
+        bersihkanListenerAsesor();
         localStorage.removeItem('pkkm_asesor_sekolah_id');
         activeSekolahId = null;
         activeSekolahData = null;
@@ -105,12 +116,14 @@ function tampilkanHeaderAsesor() {
     }
 }
 
-async function muatDataPenilaianFirebase() {
+function muatDataPenilaianFirebase() {
     const tbody = document.getElementById('tabelBodyPenilaian');
-    tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500 italic"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyinkronkan data instrumen dari Firebase...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500 italic"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyinkronkan data real-time dari Firebase...</td></tr>`;
 
-    try {
-        const snapIndikator = await db.collection("instrumen_pkkm").get();
+    bersihkanListenerAsesor();
+
+    // 1. Real-time Listener Instrumen PKKM
+    unsubIndikator = db.collection("instrumen_pkkm").onSnapshot((snapIndikator) => {
         allIndikatorList = [];
         const setInstrumen = new Set();
 
@@ -128,32 +141,51 @@ async function muatDataPenilaianFirebase() {
         });
 
         const filterSelect = document.getElementById('filterInstrumenAsesor');
+        const currentFilter = filterSelect.value;
         let optHtml = `<option value="ALL">Semua Instrumen</option>`;
         setInstrumen.forEach(ins => {
             optHtml += `<option value="${ins}">${ins}</option>`;
         });
         filterSelect.innerHTML = optHtml;
-
-        const snapBerkas = await db.collection("sekolah").doc(activeSekolahId).collection("berkas_guru").get();
-        mapBerkasSekolah = {};
-        snapBerkas.forEach(doc => {
-            mapBerkasSekolah[doc.id] = doc.data();
-        });
-
-        const snapNilai = await db.collection("sekolah").doc(activeSekolahId).collection("penilaian_asesor").get();
-        mapNilaiAsesor = {};
-        snapNilai.forEach(doc => {
-            mapNilaiAsesor[doc.id] = doc.data();
-        });
+        if (currentFilter) filterSelect.value = currentFilter;
 
         renderTabelPenilaian();
         kalkulasiRekapNilai();
-    } catch (error) {
+    }, (error) => {
         tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500 italic">Gagal memuat data: ${error.message}</td></tr>`;
-    }
+    });
+
+    // 2. Real-time Listener Berkas Unggahan Guru
+    unsubBerkas = db.collection("sekolah").doc(activeSekolahId).collection("berkas_guru")
+        .onSnapshot((snapBerkas) => {
+            mapBerkasSekolah = {};
+            snapBerkas.forEach(doc => {
+                mapBerkasSekolah[doc.id] = doc.data();
+            });
+            renderTabelPenilaian();
+        });
+
+    // 3. Real-time Listener Skor & Catatan Asesor
+    unsubNilai = db.collection("sekolah").doc(activeSekolahId).collection("penilaian_asesor")
+        .onSnapshot((snapNilai) => {
+            mapNilaiAsesor = {};
+            snapNilai.forEach(doc => {
+                mapNilaiAsesor[doc.id] = doc.data();
+            });
+            renderTabelPenilaian();
+            kalkulasiRekapNilai();
+        });
 }
 
 function renderTabelPenilaian() {
+    if (allIndikatorList.length === 0) return;
+
+    // Simpan fokus textarea aktif agar tidak hilang saat update real-time dari perangkat lain
+    const activeEl = document.activeElement;
+    const activeTextareaId = (activeEl && activeEl.tagName === 'TEXTAREA') ? activeEl.id : null;
+    const activeTextareaVal = activeTextareaId ? activeEl.value : null;
+    const activeCursorPos = activeTextareaId ? activeEl.selectionStart : null;
+
     const tbody = document.getElementById('tabelBodyPenilaian');
     const filterInstrumen = document.getElementById('filterInstrumenAsesor').value;
 
@@ -183,12 +215,13 @@ function renderTabelPenilaian() {
             let statusPrint = `<span class="hidden print:inline text-[9px] text-black">[File: ${berkas ? berkas.fileName : 'Belum Ada'}]</span>`;
 
             if (berkas && berkas.fileUrl && berkas.fileUrl !== '#') {
-                // Menggunakan fungsi bukaModalBukti agar tampil di dalam pop-up modal
                 const safeUrl = berkas.fileUrl.replace(/'/g, "\\'");
                 const safeName = (berkas.fileName || `Bukti ${idx + 1}`).replace(/'/g, "\\'");
+                const isLink = berkas.tipe === 'link';
+                
                 linkBtn = `
-                    <button type="button" onclick="bukaModalBukti('${safeUrl}', '${safeName}')" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold rounded-lg shadow-sm inline-flex items-center gap-1 no-print">
-                        <i class="fa-solid fa-eye"></i> Lihat Bukti ${idx + 1}
+                    <button type="button" onclick="bukaModalBukti('${safeUrl}', '${safeName}')" class="px-2.5 py-1 ${isLink ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700'} text-white text-[10px] font-semibold rounded-lg shadow-sm inline-flex items-center gap-1 no-print">
+                        <i class="fa-solid ${isLink ? 'fa-link' : 'fa-eye'}"></i> ${isLink ? 'Buka Tautan Link' : `Lihat Bukti ${idx + 1}`}
                     </button>
                 `;
             }
@@ -244,6 +277,18 @@ function renderTabelPenilaian() {
     });
 
     tbody.innerHTML = html;
+
+    // Kembalikan fokus & posisi kursor jika asesor sedang mengetik
+    if (activeTextareaId) {
+        const restoredEl = document.getElementById(activeTextareaId);
+        if (restoredEl) {
+            restoredEl.value = activeTextareaVal;
+            restoredEl.focus();
+            if (activeCursorPos !== null) {
+                restoredEl.setSelectionRange(activeCursorPos, activeCursorPos);
+            }
+        }
+    }
 }
 
 // ==================== FUNGSI MODAL PRATINJAU ====================
@@ -254,15 +299,28 @@ function bukaModalBukti(fileUrl, fileName) {
     const title = document.getElementById('modalTitle');
     const btnTab = document.getElementById('btnBukaTabBaru');
 
-    // Ubah URL Google Drive agar support embed / preview di iframe jika berupa view link
-    let embedUrl = fileUrl;
-    if (fileUrl.includes('drive.google.com') && fileUrl.includes('/view')) {
-        embedUrl = fileUrl.replace('/view?usp=drivesdk', '/preview').replace('/view', '/preview');
-    }
-
     title.innerText = `Pratinjau: ${fileName}`;
-    iframe.src = embedUrl;
     btnTab.href = fileUrl;
+
+    const isYouTube = fileUrl.includes('youtube.com') || fileUrl.includes('youtu.be');
+
+    if (isYouTube) {
+        let embedYtUrl = fileUrl;
+        if (fileUrl.includes('watch?v=')) {
+            const videoId = fileUrl.split('watch?v=')[1].split('&')[0];
+            embedYtUrl = `https://www.youtube.com/embed/${videoId}`;
+        } else if (fileUrl.includes('youtu.be/')) {
+            const videoId = fileUrl.split('youtu.be/')[1].split('?')[0];
+            embedYtUrl = `https://www.youtube.com/embed/${videoId}`;
+        }
+        iframe.src = embedYtUrl;
+    } else {
+        let embedUrl = fileUrl;
+        if (fileUrl.includes('drive.google.com') && fileUrl.includes('/view')) {
+            embedUrl = fileUrl.replace('/view?usp=drivesdk', '/preview').replace('/view', '/preview');
+        }
+        iframe.src = embedUrl;
+    }
 
     modal.classList.remove('hidden');
 }
@@ -271,7 +329,7 @@ function tutupModalBukti() {
     const modal = document.getElementById('modalPratinjauBukti');
     const iframe = document.getElementById('iframePratinjau');
     
-    iframe.src = ''; // Hentikan muatan iframe
+    iframe.src = ''; 
     modal.classList.add('hidden');
 }
 
@@ -283,9 +341,6 @@ async function pilihSkorNilai(indikatorId, skor) {
 
     const catatanVal = document.getElementById(`catatan_${indikatorId}`).value;
     mapNilaiAsesor[indikatorId].catatan = catatanVal;
-
-    renderTabelPenilaian();
-    kalkulasiRekapNilai();
 
     await db.collection("sekolah")
         .doc(activeSekolahId)
