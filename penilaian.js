@@ -155,12 +155,12 @@ function muatDataPenilaianFirebase() {
         tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500 italic">Gagal memuat data: ${error.message}</td></tr>`;
     });
 
-    // 2. Real-time Listener Berkas Unggahan Guru
+    // 2. Real-time Listener Berkas Unggahan Guru (Multi-file per dokumen ID unik)
     unsubBerkas = db.collection("sekolah").doc(activeSekolahId).collection("berkas_guru")
         .onSnapshot((snapBerkas) => {
             mapBerkasSekolah = {};
             snapBerkas.forEach(doc => {
-                mapBerkasSekolah[doc.id] = doc.data();
+                mapBerkasSekolah[doc.id] = { id: doc.id, ...doc.data() };
             });
             renderTabelPenilaian();
         });
@@ -206,30 +206,43 @@ function renderTabelPenilaian() {
 
         const dataNilai = mapNilaiAsesor[item.id] || { skor: null, catatan: '' };
 
-        let buktiCellHtml = '<div class="space-y-1.5">';
+        let buktiCellHtml = '<div class="space-y-2">';
         listBukti.forEach((teksBukti, idx) => {
-            const docKey = `${item.id}_${idx}`;
-            const berkas = mapBerkasSekolah[docKey] || null;
+            // Ambil SEMUA berkas yang diunggah guru untuk indikator & indeks bukti ini
+            const listBerkasPoin = Object.values(mapBerkasSekolah).filter(b => b.indikatorId === item.id && b.buktiIndex === idx);
 
-            let linkBtn = `<span class="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded italic no-print">Belum diunggah</span>`;
-            let statusPrint = `<span class="hidden print:inline text-[9px] text-black">[File: ${berkas ? berkas.fileName : 'Belum Ada'}]</span>`;
+            let listFileButtons = '';
+            if (listBerkasPoin.length > 0) {
+                listBerkasPoin.forEach((berkas) => {
+                    const safeUrl = (berkas.fileUrl || '#').replace(/'/g, "\\'");
+                    const safeName = (berkas.fileName || `Bukti ${idx + 1}`).replace(/'/g, "\\'");
+                    const isLink = berkas.tipe === 'link';
 
-            if (berkas && berkas.fileUrl && berkas.fileUrl !== '#') {
-                const safeUrl = berkas.fileUrl.replace(/'/g, "\\'");
-                const safeName = (berkas.fileName || `Bukti ${idx + 1}`).replace(/'/g, "\\'");
-                const isLink = berkas.tipe === 'link';
-                
-                linkBtn = `
-                    <button type="button" onclick="bukaModalBukti('${safeUrl}', '${safeName}')" class="px-2.5 py-1 ${isLink ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700'} text-white text-[10px] font-semibold rounded-lg shadow-sm inline-flex items-center gap-1 no-print">
-                        <i class="fa-solid ${isLink ? 'fa-link' : 'fa-eye'}"></i> ${isLink ? 'Buka Tautan Link' : `Lihat Bukti ${idx + 1}`}
-                    </button>
-                `;
+                    // Desain warna-warni dan ikon pembeda untuk Asesor
+                    const badgeBg = isLink ? 'bg-indigo-50 border-indigo-200 text-indigo-900' : 'bg-emerald-50 border-emerald-200 text-emerald-900';
+                    const iconType = isLink ? 'fa-link text-indigo-600' : 'fa-file-lines text-emerald-600';
+                    const btnColor = isLink ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700';
+
+                    listFileButtons += `
+                        <div class="flex items-center justify-between gap-2 p-1.5 ${badgeBg} border rounded-lg mt-1.5 shadow-2xs">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <i class="fa-solid ${iconType} text-xs shrink-0"></i>
+                                <span class="text-[10px] font-semibold truncate" title="${berkas.fileName}">${berkas.fileName}</span>
+                            </div>
+                            <button type="button" onclick="bukaModalBukti('${safeUrl}', '${safeName}')" class="px-2 py-1 ${btnColor} text-white text-[10px] font-bold rounded-md shadow-2xs inline-flex items-center gap-1 no-print shrink-0 transition">
+                                <i class="fa-solid ${isLink ? 'fa-external-link-alt' : 'fa-eye'} text-[9px]"></i> ${isLink ? 'Buka Link' : 'Lihat'}
+                            </button>
+                        </div>
+                    `;
+                });
+            } else {
+                listFileButtons = `<div class="p-1.5 bg-amber-50/50 border border-amber-200/60 rounded-lg text-center"><span class="text-[10px] text-amber-700 italic no-print"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Belum ada berkas</span></div>`;
             }
 
             buktiCellHtml += `
-                <div class="p-1.5 bg-slate-50 border border-slate-200 rounded-lg space-y-0.5 print:bg-transparent print:border-none print:p-0">
-                    <p class="text-[11px] text-slate-700 font-medium">${idx + 1}. ${teksBukti}</p>
-                    <div>${linkBtn} ${statusPrint}</div>
+                <div class="p-2 bg-slate-50 border border-slate-200 rounded-lg space-y-1 print:bg-transparent print:border-none print:p-0">
+                    <p class="text-[11px] text-slate-800 font-bold">${idx + 1}. ${teksBukti}</p>
+                    <div class="space-y-1">${listFileButtons}</div>
                 </div>
             `;
         });
